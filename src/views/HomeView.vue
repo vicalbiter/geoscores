@@ -9,20 +9,46 @@
 
         <!-- Controls -->
         <b-col cols="5">
-          <b-card :title="cellTitle" title-tag="h5" class="control-pane" :header="classOfInterest">
-            <b-table :items="cellInfo" :fields="fields" small>
-              <!-- Customized field to allow data manipulation-->
-              <template #cell(value)="data">
-                <b-form-input
-                  type="number"
-                  :value="data.value"
-                  @update="updateValue(data.item, $event)"
-                  size="sm"
-                  step="0.01"
-                ></b-form-input>
-              </template>
-            </b-table>
+          
+          <b-card no-body>
+            <b-tabs card>
+              <!-- Geo-Niche -->
+              <b-tab title="Geo-Prediction">
+
+                <b-card :title="cellTitle" title-tag="h5" class="control-pane" :header="classOfInterest">
+                  <b-table :items="cellInfo" :fields="fieldsMap" small>
+                    <!-- Customized field to allow data manipulation-->
+                    <template #cell(value)="data">
+                      <b-form-input
+                        type="number"
+                        :value="data.value"
+                        @update="updateValue(data.item, $event)"
+                        size="sm"
+                        step="0.01"
+                      ></b-form-input>
+                    </template>
+                  </b-table>
+                </b-card>
+
+              </b-tab>
+
+              <b-tab title="Niche Model">
+                <b-card class="control-pane" :header="classOfInterest">
+                  <b-table :items="niche" :fields="fieldsNiche" small>
+                    <template #cell(interval)="data">{{ Math.round(data.item.min * 100) / 100 + ' - ' + Math.round(data.item.max * 100) / 100 }}</template>
+                    <template #cell(score)="data">{{ Math.round(data.value * 100) / 100 }}</template>
+                    <template #cell(epsilon)="data">{{ Math.round(data.value * 100) / 100 }}</template>
+                    <template #cell(pcx)="data">{{ Math.round(data.value * 100) / 100 }}</template>
+                    <template #cell(pc)="data">{{ Math.round(data.value * 100) / 100 }}</template>
+                  </b-table>
+                </b-card>
+              </b-tab>
+
+            </b-tabs>
           </b-card>
+
+
+
         </b-col>
       </b-row>
     </b-container>
@@ -34,16 +60,44 @@
 import "leaflet/dist/leaflet.css";
 
 // 15 Minute City
-import grid from "@/data/grid_ny15m.json";
-import dd from "@/data/output_for_map.json";
+// import grid from "@/data/grid_ny15m.json";
+// import dd from "@/data/dd_ny15m.json";
+// import niche from "@/data/niche_ny15m.json";
+// var modelClass = "Class - Delta Population-10"
 
 // Bikeways
-// import grid from "@/data/grid.json";
-// import dd from "@/data/dd.json";
+import grid from "@/data/grid_labike.json";
+import dd from "@/data/dd_labike.json";
+import niche from "@/data/niche_labike.json"; 
+var modelClass = "Delta Bike Accidents";
+var modelTitle = "Class: " + modelClass + " - 10";
+
 
 // Fair Housing
 // import grid from "@/data/grid_lafh.json";
 // import dd from "@/data/dd_lafh.json";
+// import niche from "@/data/niche_lafh.json";
+// var modelClass = "Class - Overcrowding-10";
+
+/* INSURANCE DEMOS */
+
+// import grid from "@/data/grid_lainf.json";
+// import dd from "@/data/dd_lainf_vb.json";
+// import niche from "@/data/niche_lainf_vb.json"; 
+// var modelClass = "Vehicle/Bike Accidents";
+// var modelTitle = "Class: " + modelClass + " - 10";
+
+// import grid from "@/data/grid_lainf.json";
+// import dd from "@/data/dd_lainf_vp.json";
+// import niche from "@/data/niche_lainf_vp.json"; 
+// var modelClass = "Vehicle/Pedestrian Accidents";
+// var modelTitle = "Class: " + modelClass + " - 10";
+
+// import grid from "@/data/grid_lainf.json";
+// import dd from "@/data/output_for_map.json";
+// import niche from "@/data/output_for_table.json"; 
+// var modelClass = "Vehicle/Vehicle Accidents";
+// var modelTitle = "Class: " + modelClass + " - 10";
 
 import L from "leaflet";
 const Gradient = require("javascript-color-gradient");
@@ -53,7 +107,7 @@ export default {
   components: {},
   data() {
     return {
-      classOfInterest: "Class - Delta Population-10",
+      classOfInterest: modelTitle,
       map: null,
       geojson: null,
       gradient: null,
@@ -64,7 +118,7 @@ export default {
       cell: null,
       sortBy: "value",
       sortDesc: true,
-      fields: [
+      fieldsMap: [
         { key: "driver", sortable: true },
         { key: "description", sortable: false},
         { key: "value", sortable: true },
@@ -72,6 +126,17 @@ export default {
         { key: "interval", sortable: false},
         { key: "score", sortable: true },
       ],
+      niche: niche,
+      fieldsNiche: [
+        { key: "name", sortable: true },
+        { key: "value", label: "Bin", sortable: true },
+        { key: "interval", sortable: false },
+        { key: "description", sortable: false },
+        { key: "score", sortable: true },
+        { key: "epsilon", sortable: true },
+        { key: "pcx", sortable: false },
+        { key: "pc", sortable: false }
+      ]
     };
   },
   methods: {
@@ -212,10 +277,11 @@ export default {
     },
     getColor(feature) {
       var score = this.scoreFeature(feature);
+
       // Edge cases
       if (score < this.gradient[0].val) {
         return this.gradient[0].color;
-      } else if (score >= this.gradient[this.gradientSteps]) {
+      } else if (score >= this.gradient[this.gradientSteps].val) {
         return this.gradient[this.gradientSteps].color;
       }
 
@@ -323,7 +389,8 @@ export default {
       this.cellScore = 0
       items.forEach(element => { this.cellScore += element.score })
       this.cellScore = this.truncate(this.cellScore);
-      this.cellTitle = "(NBHD) " + props.ntaname + " [Score = " + this.cellScore + "]";
+      // this.cellTitle = props.name + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " " + modelClass + "]";
+      this.cellTitle = props.name + " [Score: " + this.cellScore + "]";
 
       return items;
     },
@@ -338,6 +405,15 @@ export default {
     },
     truncate(value) {
         return Math.round(value * 100) / 100;
+    },
+    transform(value) {
+      if (modelClass == "Vehicle/Bike Accidents") {
+        return this.truncate(2.22*Math.exp(0.2028 * value))
+      } else if (modelClass == "Vehicle/Pedestrian Accidents") {
+        return this.truncate(4.2273*Math.exp(0.1732 * value))
+      } else if (modelClass == "Vehicle/Vehicle Accidents") {
+        return this.truncate(34.366*Math.exp(0.1075 * value))
+      }
     }
   },
   mounted() {
@@ -353,7 +429,7 @@ export default {
 }
 
 .control-pane {
-  height: 800px;
+  height: 700px;
   overflow-y: scroll;
   font-size: 12px;
 }
