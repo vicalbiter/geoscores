@@ -3,12 +3,12 @@
     <b-container fluid>
       <b-row>
         <!-- Map -->
-        <b-col cols="7">
+        <b-col cols="6">
           <div id="map"></div>
         </b-col>
 
         <!-- Controls -->
-        <b-col cols="5">
+        <b-col cols="6">
           
           <b-card no-body>
             <b-tabs card>
@@ -19,13 +19,20 @@
                   <b-table :items="cellInfo" :fields="fieldsMap" small>
                     <!-- Customized field to allow data manipulation-->
                     <template #cell(value)="data">
-                      <b-form-input
+                      <!-- <b-form-input
                         type="number"
                         :value="data.value"
                         @update="updateValue(data.item, $event)"
                         size="sm"
                         step="0.01"
-                      ></b-form-input>
+                      ></b-form-input> -->
+                      <b-form-select
+                        :value="data.value"
+                        :options="dd_display[data.item.driver]"
+                        @change="updateValue(data.item, $event)"
+                        size="sm"
+                        class="text-center"
+                      ></b-form-select>
                     </template>
                   </b-table>
                 </b-card>
@@ -35,7 +42,7 @@
               <b-tab title="Niche Model">
                 <b-card class="control-pane" :header="classOfInterest">
                   <b-table :items="niche" :fields="fieldsNiche" small>
-                    <template #cell(interval)="data">{{ Math.round(data.item.min * 100) / 100 + ' - ' + Math.round(data.item.max * 100) / 100 }}</template>
+                    <template #cell(interval)="data">{{ data.item.interval }}</template>
                     <template #cell(score)="data">{{ Math.round(data.value * 100) / 100 }}</template>
                     <template #cell(epsilon)="data">{{ Math.round(data.value * 100) / 100 }}</template>
                     <template #cell(pcx)="data">{{ Math.round(data.value * 100) / 100 }}</template>
@@ -66,11 +73,19 @@ import "leaflet/dist/leaflet.css";
 // var modelClass = "Class - Delta Population-10"
 
 // Bikeways
-import grid from "@/data/grid_labike.json";
-import dd from "@/data/dd_labike.json";
-import niche from "@/data/niche_labike.json"; 
-var modelClass = "Delta Bike Accidents";
+import grid from "@/data/demo_increments_4326.json";
+import dd from "@/data/demo_output_dict.json";
+import dd_display from "@/data/demo_output_table_display.json"
+import niche from "@/data/demo_output_table.json"; 
+var modelClass = "Yield";
 var modelTitle = "Class: " + modelClass + " - 10";
+
+// Bikeways
+// import grid from "@/data/grid_labike.json";
+// import dd from "@/data/dd_labike.json";
+// import niche from "@/data/niche_labike.json"; 
+// var modelClass = "Delta Bike Accidents";
+// var modelTitle = "Class: " + modelClass + " - 10";
 
 
 // Fair Housing
@@ -120,18 +135,15 @@ export default {
       sortDesc: true,
       fieldsMap: [
         { key: "driver", sortable: true },
-        { key: "description", sortable: false},
         { key: "value", sortable: true },
-        { key: "cg", label: "Bin", sortable: false },
-        { key: "interval", sortable: false},
         { key: "score", sortable: true },
       ],
+      dd_display: dd_display,
       niche: niche,
       fieldsNiche: [
         { key: "name", sortable: true },
-        { key: "value", label: "Bin", sortable: true },
+        { key: "value", label: "Category", sortable: true },
         { key: "interval", sortable: false },
-        { key: "description", sortable: false },
         { key: "score", sortable: true },
         { key: "epsilon", sortable: true },
         { key: "pcx", sortable: false },
@@ -224,46 +236,18 @@ export default {
       return total_score;
     },
     scoreProperty(property, value) {
-      // Initialize the score
-      var score = 0;
 
-      // Get the cg for this property
-      var cg = null;
-
-      // Look for the appropriate score in the data dictionary
-      // TODO: Take care of the intervals bug (the reason for the 0.999 and 1.001 coefficients)
-      var abs_min = { value: 9999, cat: null };
-      var abs_max = { value: -9999, cat: null };
-
-      for (var category in dd[property]) {
-
-        let min = dd[property][category]["min"];
-        let max = dd[property][category]["max"];
-
-        if (min < abs_min.value) {
-          abs_min.value = min;
-          abs_min.cat = category
-        }
-
-        if (max > abs_max.value) {
-          abs_max.value = max;
-          abs_max.cat = category;
-        }
-
-        if (value >= min * 0.999 && value <= max * 1.001) {
-          cg = category;
-          break;
-        }
+      if ((typeof(value) == 'number') & !value.toString().includes('.') & dd[property]["type"] != 'num') {
+        value = value.toString() + '.0'
       }
 
-      if (!cg) {
-        if (value < abs_min.value) { cg = abs_min.cat }
-        else if (value > abs_max.value) { cg = abs_max.cat }
-        else { cg = "1" }
+      if(typeof(value) == 'boolean') {
+        value = value.toString()
+        value = value.charAt(0).toUpperCase() + value.slice(1)
       }
-      
 
-      return dd[property][cg]["score"];
+      return dd[property]["values"][value]["score"]
+
     },
     style(feature) {
       return {
@@ -319,6 +303,7 @@ export default {
       this.geojson.resetStyle(e.target);
     },
     focusOnFeature(e) {
+      console.log(e)
       var layer = e.target;
 
       layer.setStyle({
@@ -337,50 +322,25 @@ export default {
       for (var property in props) {
         // Only parse those properties that are being tracked in the data dictionary
         if (property in dd) {
-          // Get the value of this property
-          var value = props[property];
 
-          // Get the cg for this property
-          var cg = null;
-          var min;
-          var max;
+          var value = props[property]
 
-          var abs_min = { value: 9999, cat: null } ;
-          var abs_max = { value: -9999, cat: null };
-
-          for (var category in dd[property]) {
-            min = dd[property][category]["min"];
-            max = dd[property][category]["max"];
-
-            if (min < abs_min.value) {
-              abs_min.value = min;
-              abs_min.cat = category
+          if (value) {
+            if ((typeof(value) == 'number') & !value.toString().includes('.') & dd[property]["type"] != 'num') {
+              value = value.toString() + '.0'
             }
 
-            if (max > abs_max.value) {
-              abs_max.value = max;
-              abs_max.cat = category;
-            }
-
-            if (value >= min && value <= max * 1.001) {
-              cg = category;
-              break;
+            if(typeof(value) == 'boolean') {
+              value = value.toString()
+              value = value.charAt(0).toUpperCase() + value.slice(1)
             }
           }
 
-          if (!cg) {
-            if (value < abs_min.value) { cg = abs_min.cat }
-            else if (value > abs_max.value) { cg = abs_max.cat }
-            else { cg = "5" }
-          }
 
           items.push({
             driver: property,
-            value: this.truncate(value),
-            description: dd[property][category]["description"],
-            cg: cg,
-            interval: " (" + this.truncate(min) + " - " + this.truncate(max) + ")",
-            score: isNaN(dd[property][cg]["score"]) ? 0 : this.truncate(dd[property][cg]["score"]),
+            value: value,
+            score: value ? this.truncate(dd[property]["values"][value]["score"]) : 0,
           });
         }
       }
@@ -389,8 +349,8 @@ export default {
       this.cellScore = 0
       items.forEach(element => { this.cellScore += element.score })
       this.cellScore = this.truncate(this.cellScore);
-      // this.cellTitle = props.name + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " " + modelClass + "]";
-      this.cellTitle = props.name + " [Score: " + this.cellScore + "]";
+      this.cellTitle = props.Field + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " MTH" + "]";
+      // this.cellTitle = props.name + " [Score: " + this.cellScore + "]";
 
       return items;
     },
@@ -407,13 +367,14 @@ export default {
         return Math.round(value * 100) / 100;
     },
     transform(value) {
-      if (modelClass == "Vehicle/Bike Accidents") {
-        return this.truncate(2.22*Math.exp(0.2028 * value))
-      } else if (modelClass == "Vehicle/Pedestrian Accidents") {
-        return this.truncate(4.2273*Math.exp(0.1732 * value))
-      } else if (modelClass == "Vehicle/Vehicle Accidents") {
-        return this.truncate(34.366*Math.exp(0.1075 * value))
-      }
+      // if (modelClass == "Vehicle/Bike Accidents") {
+      //   return this.truncate(2.22*Math.exp(0.2028 * value))
+      // } else if (modelClass == "Vehicle/Pedestrian Accidents") {
+      //   return this.truncate(4.2273*Math.exp(0.1732 * value))
+      // } else if (modelClass == "Vehicle/Vehicle Accidents") {
+      //   return this.truncate(34.366*Math.exp(0.1075 * value))
+      // }
+      return this.truncate(95.61*Math.exp(0.008*value))
     }
   },
   mounted() {
