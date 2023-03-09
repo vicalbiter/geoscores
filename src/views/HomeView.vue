@@ -39,6 +39,7 @@
 
               </b-tab>
 
+              <!-- Model -->
               <b-tab title="Niche Model">
                 <b-card class="control-pane" :header="classOfInterest">
                   <b-table :items="niche" :fields="fieldsNiche" small>
@@ -49,6 +50,24 @@
                     <template #cell(pc)="data">{{ Math.round(data.value * 100) / 100 }}</template>
                   </b-table>
                 </b-card>
+
+              </b-tab>
+    
+              <!-- Settings -->
+              <b-tab title="Drivers">
+                <b-card class="control-pane" :header="classOfInterest">
+                  <b-table :items="settings" :fields="fieldsSettings" small>
+                    <!-- Taxonomy -->
+                    <template #cell(taxonomy)="data">
+                      <b-form-checkbox v-model="taxonomies[data.item.taxonomy]" @input="updateSelectedTaxonomy(data.item.taxonomy, $event)">{{ data.item.taxonomy }}</b-form-checkbox>
+                    </template>
+                    <!-- Include & Name -->
+                    <template #cell(include)="data">
+                      <b-form-checkbox v-model="data.item.include" @input="updateSelectedDrivers(data.item, $event)">{{ data.item.name }}</b-form-checkbox>
+                    </template>
+                  </b-table>
+                </b-card>
+
               </b-tab>
 
             </b-tabs>
@@ -72,13 +91,21 @@ import "leaflet/dist/leaflet.css";
 // import niche from "@/data/niche_ny15m.json";
 // var modelClass = "Class - Delta Population-10"
 
-// Bikeways
-import grid from "@/data/demo_increments_4326.json";
-import dd from "@/data/demo_output_dict.json";
-import dd_display from "@/data/demo_output_table_display.json"
-import niche from "@/data/demo_output_table.json"; 
-var modelClass = "Yield";
+// Fair Housing
+import grid from "@/data/demo_affh_tracts.json";
+import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_10.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_10.json"
+import niche from "@/data/demo_affh_output_table_CG_dist_ideal_10.json"; 
+var modelClass = "Race Composition";
 var modelTitle = "Class: " + modelClass + " - 10";
+
+// Bikeways
+// import grid from "@/data/demo_increments_4326.json";
+// import dd from "@/data/demo_output_dict.json";
+// import dd_display from "@/data/demo_output_table_display.json"
+// import niche from "@/data/demo_output_table.json"; 
+// var modelClass = "Yield";
+// var modelTitle = "Class: " + modelClass + " - 10";
 
 // Bikeways
 // import grid from "@/data/grid_labike.json";
@@ -87,12 +114,6 @@ var modelTitle = "Class: " + modelClass + " - 10";
 // var modelClass = "Delta Bike Accidents";
 // var modelTitle = "Class: " + modelClass + " - 10";
 
-
-// Fair Housing
-// import grid from "@/data/grid_lafh.json";
-// import dd from "@/data/dd_lafh.json";
-// import niche from "@/data/niche_lafh.json";
-// var modelClass = "Class - Overcrowding-10";
 
 /* INSURANCE DEMOS */
 
@@ -114,7 +135,7 @@ var modelTitle = "Class: " + modelClass + " - 10";
 // var modelClass = "Vehicle/Vehicle Accidents";
 // var modelTitle = "Class: " + modelClass + " - 10";
 
-import L from "leaflet";
+import L, { geoJson } from "leaflet";
 const Gradient = require("javascript-color-gradient");
 
 export default {
@@ -142,18 +163,30 @@ export default {
       niche: niche,
       fieldsNiche: [
         { key: "name", sortable: true },
+        { key: "description", sortable: false },
         { key: "value", label: "Category", sortable: true },
         { key: "interval", sortable: false },
         { key: "score", sortable: true },
         { key: "epsilon", sortable: true },
         { key: "pcx", sortable: false },
         { key: "pc", sortable: false }
-      ]
+      ],
+      settings: null,
+      taxonomies: {},
+      fieldsSettings: [
+        { key: "taxonomy", sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "include", label: "Name", sortable: false, thClass: 'text-left', tdClass: 'text-left' },
+        // { key: "name", sortable: true },
+        { key: "description", sortable: false, thClass: 'text-left', tdClass: 'text-left' }
+      ],
+      selectedDrivers: {},
     };
   },
   methods: {
-    fetchGrid() {
+    intializeParameters() {
       // const grid = await fetch("something...");
+      this.settings = this.intializeDriverSettings(dd);
+      this.selectedDrivers = this.initializeSelectedDrivers(this.settings)
       this.gradient = this.getScoreGradient(grid.features);
     },
     initializeMap() {
@@ -171,7 +204,9 @@ export default {
       this.geojson = L.geoJson(grid, {
         style: this.style,
         onEachFeature: this.onEachFeature
-      }).addTo(this.map);
+      })
+
+      this.geojson.addTo(this.map);
 
       // Get the bounds of the current grid and zoom appropiately
       this.map.fitBounds(this.geojson.getBounds());
@@ -219,7 +254,8 @@ export default {
 
       // Get the total score of this feature
       for (var property in feature.properties) {
-        if ((property in dd) && feature.properties[property]) {
+        if ((property in dd) && (this.selectedDrivers[property]) && feature.properties[property]) {
+          // console.log({property, selected: this.selectedDrivers[property]})
           // Get the score of this property
           var score = this.scoreProperty(
             property,
@@ -303,7 +339,7 @@ export default {
       this.geojson.resetStyle(e.target);
     },
     focusOnFeature(e) {
-      console.log(e)
+      // console.log(e)
       var layer = e.target;
 
       layer.setStyle({
@@ -321,7 +357,7 @@ export default {
       var items = [];
       for (var property in props) {
         // Only parse those properties that are being tracked in the data dictionary
-        if (property in dd) {
+        if ((property in dd) && (this.selectedDrivers[property])) {
 
           var value = props[property]
 
@@ -349,8 +385,8 @@ export default {
       this.cellScore = 0
       items.forEach(element => { this.cellScore += element.score })
       this.cellScore = this.truncate(this.cellScore);
-      this.cellTitle = props.Field + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " MTH" + "]";
-      // this.cellTitle = props.name + " [Score: " + this.cellScore + "]";
+      // this.cellTitle = props.Field + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " MTH" + "]";
+      this.cellTitle = props.id + " [Score: " + this.cellScore + "]";
 
       return items;
     },
@@ -375,11 +411,59 @@ export default {
       //   return this.truncate(34.366*Math.exp(0.1075 * value))
       // }
       return this.truncate(95.61*Math.exp(0.008*value))
+    },
+    intializeDriverSettings(dict) {
+      var list = [];
+      for (var driver in dict) {
+        var description = dict[driver]["description"]
+        var taxonomy = dict[driver]["taxonomy"]
+
+        list.push({
+          name: driver, 
+          description: description,
+          taxonomy: taxonomy,
+          include: true
+        });
+
+        // Update taxonomies
+
+        if (!(taxonomy in this.taxonomies)) {
+          this.taxonomies[taxonomy] = true
+        }
+      }
+      console.log(this.taxonomies)
+      return list;
+    },
+    initializeSelectedDrivers(list) {
+      var dict = {}
+      for (var index in list) {
+        var driver = list[index]
+        dict[driver.name] = driver.include
+      }
+      return dict
+    },
+    updateSelectedDrivers(item, newValue) {
+      this.selectedDrivers[item.name] = newValue
+      console.log(`Updated ${item.name} to ${newValue}`)
+      this.gradient = this.getScoreGradient(grid.features)
+      this.restyleMap()
+    },
+    updateSelectedTaxonomy(item, newValue) {
+      console.log({item, newValue})
+      for (var driver in this.selectedDrivers) {
+        
+      }
+    },
+    restyleMap() {
+      this.geojson.eachLayer((featureInstanceLayer) => {
+        this.geojson.resetStyle(featureInstanceLayer)
+      })
     }
   },
   mounted() {
-    this.fetchGrid();
+    this.intializeParameters();
     this.initializeMap();
+    // console.log(this.selectedDrivers)
   },
 };
 </script>

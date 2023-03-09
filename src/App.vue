@@ -1,10 +1,13 @@
 <template>
   <div id="app">
+    <div class="my-1">
+      <b-img src="./assets/imgFdoBlancoChico.jpg" fluid alt="Responsive image" class="top-presage"></b-img>
+    </div>
+    <router-view/>
     <nav>
       <router-link to="/">Map</router-link> |
       <router-link to="/about">Settings</router-link>
     </nav>
-    <router-view/>
   </div>
 </template>
 
@@ -28,5 +31,9 @@ nav a {
 
 nav a.router-link-exact-active {
   color: #4262b9;
+}
+
+.top-presage {
+  height: 80px;
 }
 </style>
