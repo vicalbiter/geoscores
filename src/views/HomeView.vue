@@ -42,7 +42,7 @@
               <!-- Model -->
               <b-tab title="Niche Model">
                 <b-card class="control-pane" :header="classOfInterest">
-                  <b-table :items="niche" :fields="fieldsNiche" small>
+                  <b-table :items="niche" :fields="fieldsNiche" small hover>
                     <template #cell(interval)="data">{{ data.item.interval }}</template>
                     <template #cell(score)="data">{{ Math.round(data.value * 100) / 100 }}</template>
                     <template #cell(epsilon)="data">{{ Math.round(data.value * 100) / 100 }}</template>
@@ -55,11 +55,20 @@
     
               <!-- Settings -->
               <b-tab title="Drivers">
-                <b-card class="control-pane" :header="classOfInterest">
-                  <b-table :items="settings" :fields="fieldsSettings" small>
+                
+                <b-card class="control-pane">
+
+                  <template #header>
+                    <b-row align-v="center" align-h="end">
+                      <b-col cols="4"><b-card-text>{{ classOfInterest }}</b-card-text></b-col>
+                      <b-col cols="4"><b-button variant="info" size="sm" @click="restyleMap"> Update Map</b-button></b-col>
+                    </b-row>
+                  </template>
+
+                  <b-table :items="settings" :fields="fieldsSettings" small hover>
                     <!-- Taxonomy -->
                     <template #cell(taxonomy)="data">
-                      <b-form-checkbox v-model="taxonomies[data.item.taxonomy]" @input="updateSelectedTaxonomy(data.item.taxonomy, $event)">{{ data.item.taxonomy }}</b-form-checkbox>
+                      <b-form-checkbox v-model="taxonomies[data.item.taxonomy].include" @input="updateSelectedTaxonomy(data.item, $event)">{{ data.item.taxonomy }}</b-form-checkbox>
                     </template>
                     <!-- Include & Name -->
                     <template #cell(include)="data">
@@ -92,12 +101,20 @@ import "leaflet/dist/leaflet.css";
 // var modelClass = "Class - Delta Population-10"
 
 // Fair Housing
-import grid from "@/data/demo_affh_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_10.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_10.json"
-import niche from "@/data/demo_affh_output_table_CG_dist_ideal_10.json"; 
+// import grid from "@/data/demo_affh_tracts.json";
+// import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_10.json";
+// import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_10.json"
+// import niche from "@/data/demo_affh_output_table_CG_dist_ideal_10.json"; 
+// var modelClass = "Race Composition";
+// var modelTitle = "Class: " + modelClass + " - 10";
+
+// Fair Housing
+import grid from "@/data/demo_affh_cog_tracts.json";
+import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_1.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_1.json"
+import niche from "@/data/demo_affh_output_table_CG_dist_ideal_1.json"; 
 var modelClass = "Race Composition";
-var modelTitle = "Class: " + modelClass + " - 10";
+var modelTitle = "Class: " + modelClass + " - 1";
 
 // Bikeways
 // import grid from "@/data/demo_increments_4326.json";
@@ -186,6 +203,7 @@ export default {
     intializeParameters() {
       // const grid = await fetch("something...");
       this.settings = this.intializeDriverSettings(dd);
+      this.taxonomies = this.intializeTaxonomies(dd);
       this.selectedDrivers = this.initializeSelectedDrivers(this.settings)
       this.gradient = this.getScoreGradient(grid.features);
     },
@@ -235,7 +253,7 @@ export default {
       var intervals = [];
 
       var gradientArray = new Gradient()
-        .setColorGradient("#FFFFFF", "#FF0000")
+        .setColorGradient("#0000FF", "FFFFFF", "#FF0000")
         .setMidpoint(steps + 1)
         .getColors();
 
@@ -424,15 +442,25 @@ export default {
           taxonomy: taxonomy,
           include: true
         });
-
-        // Update taxonomies
-
-        if (!(taxonomy in this.taxonomies)) {
-          this.taxonomies[taxonomy] = true
-        }
       }
-      console.log(this.taxonomies)
       return list;
+    },
+    intializeTaxonomies(dict) {
+      var taxonomies = {};
+      for (var driver in dict) {
+        var description = dict[driver]["description"]
+        var taxonomy = dict[driver]["taxonomy"]
+
+        if (!(taxonomy in taxonomies)) {
+          taxonomies[taxonomy] = {
+            include: true,
+            drivers: []
+          }
+        }
+        taxonomies[taxonomy]["drivers"].push(driver)
+      }
+      console.log(taxonomies)
+      return taxonomies
     },
     initializeSelectedDrivers(list) {
       var dict = {}
@@ -444,17 +472,18 @@ export default {
     },
     updateSelectedDrivers(item, newValue) {
       this.selectedDrivers[item.name] = newValue
-      console.log(`Updated ${item.name} to ${newValue}`)
-      this.gradient = this.getScoreGradient(grid.features)
-      this.restyleMap()
+      item.include = newValue
+      // console.log(`Updated ${item.name} to ${newValue}`)
+      // this.restyleMap()
     },
     updateSelectedTaxonomy(item, newValue) {
-      console.log({item, newValue})
-      for (var driver in this.selectedDrivers) {
-        
-      }
+      this.updateSelectedDrivers(item, newValue)
     },
     restyleMap() {
+      // Update gradient
+      this.gradient = this.getScoreGradient(grid.features)
+
+      // Update features
       this.geojson.eachLayer((featureInstanceLayer) => {
         this.geojson.resetStyle(featureInstanceLayer)
       })

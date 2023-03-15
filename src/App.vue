@@ -5,8 +5,8 @@
     </div>
     <router-view/>
     <nav>
-      <router-link to="/">Map</router-link> |
-      <router-link to="/about">Settings</router-link>
+      <router-link to="/">Model</router-link> |
+      <router-link to="/layers">Layers</router-link>
     </nav>
   </div>
 </template>
