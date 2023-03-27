@@ -38,13 +38,16 @@
               </b-tab>
             
               <!-- Geo-Niche -->
-              <b-tab title="Tract Data">
+              <!-- <b-tab title="Tract Profile">
 
                 <b-card :title="cellTitle" title-tag="h5" class="control-pane">
-                  <b-table :items="cellInfo" :fields="fieldsMap" small></b-table>
+                  <b-table :items="cellInfo" :fields="fieldsMap" small v-if="cellInfo"></b-table>
+                  <div v-else class="placeholder">
+                    <h2>(Click on a tract to display its profile)</h2>
+                  </div>
                 </b-card>
 
-              </b-tab>
+              </b-tab> -->
 
             </b-tabs>
           </b-card>
@@ -61,9 +64,9 @@ import "leaflet/dist/leaflet.css";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_1.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_1.json"
-import niche from "@/data/demo_affh_output_table_CG_dist_ideal_1.json"; 
+import dd from "@/data/demo_affh_output_dict_CG_pct_poverty_10.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_pct_poverty_10.json"
+import niche from "@/data/demo_affh_output_table_CG_pct_poverty_10.json"; 
 var modelClass = "Race Composition";
 var modelTitle = "Class: " + modelClass + " - 1";
 
@@ -81,7 +84,7 @@ export default {
       info: null,
       geojson: null,
       gradient: null,
-      gradientSteps: 10,
+      gradientSteps: 9,
       cellTitle: null,
       cellScore: 0,
       cellInfo: null,
@@ -89,14 +92,15 @@ export default {
       sortBy: "value",
       sortDesc: true,
       fieldsMap: [
-        { key: "driver", label:'Variable', sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "taxonomy", label: 'Category', sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "driver", label: 'Variable', sortable: true, thClass: 'text-left', tdClass: 'text-left' },
         { key: "description", thClass: 'text-left', tdClass: 'text-left' },
         { key: "value", label:'Value', sortable: true },
       ],
       selectedProperty: 'pct_overcr',
       settings: null,
       fieldsSettings: [
-        { key: "taxonomy", sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "taxonomy", label: "Category", sortable: true, thClass: 'text-left', tdClass: 'text-left' },
         { key: "label", label: 'Layer Name', sortable: false, thClass: 'text-left', tdClass: 'text-left' },
         // { key: "name", sortable: true },
         { key: "description", sortable: false, thClass: 'text-left', tdClass: 'text-left' },
@@ -312,6 +316,7 @@ export default {
 
           items.push({
             driver: property,
+            taxonomy: dd[property_]["taxonomy"],
             description: dd[property_]["description"],
             value: value
           });
@@ -319,7 +324,7 @@ export default {
       }
 
       // Update the UI
-      this.cellTitle = `GEOID: ${props.geoid_p}`
+      this.cellTitle = `GEOID: ${props.GEOID10}`
 
       return items;
     },
@@ -333,7 +338,7 @@ export default {
       this.geojson.resetStyle(this.cell);
     },
     truncate(value) {
-        return Math.round(value * 10) / 10;
+        return Math.round(value * 100) / 100;
     },
     transform(value) {
       return this.truncate(95.61*Math.exp(0.008*value))
@@ -378,6 +383,7 @@ export default {
   mounted() {
     this.intializeParameters();
     this.initializeMap();
+    // console.log(dd)
     // console.log(this.selectedDrivers)
   },
 };
@@ -420,5 +426,15 @@ export default {
     float: left;
     margin-right: 8px;
     opacity: 0.7;
+}
+
+.placeholder {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.5;
+  background: #F8F8F8;
+  border-radius: 10px;
 }
 </style>

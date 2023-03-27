@@ -1,19 +1,49 @@
 <template>
   <div id="app">
-    <div class="my-1">
-      <b-img src="./assets/imgFdoBlancoChico.jpg" fluid alt="Responsive image" class="top-presage"></b-img>
+    <b-navbar toggleable="sm" variant="light" type="light">
+      <div class="nav-container">
+
+        <b-navbar-brand>
+          <h4><img src="./assets/lupa.png" class="d-inline-block align-top logo" alt=""> Smart <strong>Housing</strong></h4>
+          <!-- <b-icon icon="building"></b-icon>  -->
+        </b-navbar-brand>
+        
+        <b-navbar-nav class="ml-3">
+          <b-nav-item to="/" exact exact-active-class="active">Model</b-nav-item>
+          <b-nav-item to="/layers" exact exact-active-class="active">Layers</b-nav-item>
+          <b-nav-item to="/profile" exact exact-active-class="active">Profiles</b-nav-item>
+        </b-navbar-nav>
+        
+        <b-navbar-nav class="ml-auto">
+          <b-nav-item-dropdown right>
+            <!-- Using 'button-content' slot -->
+            <template #button-content>
+              <b-icon icon="person-circle" class="mr-1"></b-icon><small>Administrator</small>
+            </template>
+            <b-dropdown-item href="#">Profile</b-dropdown-item>
+            <b-dropdown-item href="#">Sign Out</b-dropdown-item>
+          </b-nav-item-dropdown>
+        </b-navbar-nav>
+
+      </div>
+    </b-navbar>
+
+    <div class="content">
+      <router-view/>
     </div>
-    <router-view/>
-    <nav>
-      <router-link to="/">Model</router-link> |
-      <router-link to="/layers">Layers</router-link>
-    </nav>
+    <div class="mt-3 p-2">
+      <hr class="m-0 footer mx-auto">
+      <b-img src="./assets/imgSinFdoParaBlancoChico.png" fluid alt="Responsive image" class="top-presage"></b-img>
+      <!-- <b-img src="./assets/ibi.jpg" fluid class="top-presage"></b-img> -->
+    </div>
   </div>
 </template>
 
-<style>
+<style lang="scss">
+@import "../custom.scss";
+
 #app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
+  font-family: Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
@@ -34,6 +64,30 @@ nav a.router-link-exact-active {
 }
 
 .top-presage {
-  height: 80px;
+  height: 50px;
+  opacity: 0.8;
+}
+
+.footer {
+  width: 60%;
+  opacity: 0.7;
+}
+
+.nav-container {
+  display: flex;
+  width: 100%;
+  /* max-width: 1400px; */
+  padding: 10px 20px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.router-link-active {
+  color: rgba(0,0,0,.9);
+  border-bottom: 2px solid #3d3b3b;
+}
+
+.logo {
+  max-height: 30px;
 }
 </style>

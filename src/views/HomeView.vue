@@ -13,10 +13,10 @@
           <b-card no-body>
             <b-tabs card>
               <!-- Geo-Niche -->
-              <b-tab title="Geo-Prediction">
+              <b-tab title="Model Profile">
 
                 <b-card :title="cellTitle" title-tag="h5" class="control-pane" :header="classOfInterest">
-                  <b-table :items="cellInfo" :fields="fieldsMap" small>
+                  <b-table :items="cellInfo" :fields="fieldsMap" small v-if="cellInfo">
                     <!-- Customized field to allow data manipulation-->
                     <template #cell(value)="data">
                       <!-- <b-form-input
@@ -35,6 +35,10 @@
                       ></b-form-select>
                     </template>
                   </b-table>
+
+                  <div v-else class="placeholder">
+                    <h2>(Click on a tract to display its profile)</h2>
+                  </div>
                 </b-card>
 
               </b-tab>
@@ -54,14 +58,14 @@
               </b-tab>
     
               <!-- Settings -->
-              <b-tab title="Drivers">
+              <b-tab title="Niche Variables">
                 
                 <b-card class="control-pane">
 
                   <template #header>
-                    <b-row align-v="center" align-h="end">
-                      <b-col cols="4"><b-card-text>{{ classOfInterest }}</b-card-text></b-col>
-                      <b-col cols="4"><b-button variant="info" size="sm" @click="restyleMap"> Update Map</b-button></b-col>
+                    <b-row align-v="center" align-h="between">
+                      <b-col cols="6"><b-card-text><strong>Available Niche Variables</strong> for {{ classOfInterest }}</b-card-text></b-col>
+                      <b-col cols="2"><b-button variant="info" size="sm" @click="restyleMap"> Update Map</b-button></b-col>
                     </b-row>
                   </template>
 
@@ -101,20 +105,20 @@ import "leaflet/dist/leaflet.css";
 // var modelClass = "Class - Delta Population-10"
 
 // Fair Housing
-// import grid from "@/data/demo_affh_tracts.json";
-// import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_10.json";
-// import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_10.json"
-// import niche from "@/data/demo_affh_output_table_CG_dist_ideal_10.json"; 
+// import grid from "@/data/affh_lac/demo_affh_tracts.json";
+// import dd from "@/data/affh_lac/demo_affh_output_dict_CG_dist_ideal_10.json";
+// import dd_display from "@/data/affh_lac/demo_affh_output_table_display_CG_dist_ideal_10.json"
+// import niche from "@/data/affh_lac/demo_affh_output_table_CG_dist_ideal_10.json"; 
 // var modelClass = "Race Composition";
 // var modelTitle = "Class: " + modelClass + " - 10";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_dist_ideal_1.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_dist_ideal_1.json"
-import niche from "@/data/demo_affh_output_table_CG_dist_ideal_1.json"; 
-var modelClass = "Race Composition";
-var modelTitle = "Class: " + modelClass + " - 1";
+import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
+import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
+var modelClass = "Rent >30% of renter's income";
+var modelTitle = "Class: " + modelClass + " - 10";
 
 // Bikeways
 // import grid from "@/data/demo_increments_4326.json";
@@ -164,7 +168,7 @@ export default {
       map: null,
       geojson: null,
       gradient: null,
-      gradientSteps: 10,
+      gradientSteps: 9,
       cellTitle: null,
       cellScore: 0,
       cellInfo: null,
@@ -172,16 +176,17 @@ export default {
       sortBy: "value",
       sortDesc: true,
       fieldsMap: [
-        { key: "driver", sortable: true },
-        { key: "value", sortable: true },
-        { key: "score", sortable: true },
+        { key: "taxonomy", label: 'Category', sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "description", label: 'Niche Variable', thClass: 'text-left', tdClass: 'text-left' },
+        { key: "value", label:'Value', sortable: true },
+        { key: "score", sortable: true}
       ],
       dd_display: dd_display,
       niche: niche,
       fieldsNiche: [
         { key: "name", sortable: true },
         { key: "description", sortable: false },
-        { key: "value", label: "Category", sortable: true },
+        { key: "value", sortable: true },
         { key: "interval", sortable: false },
         { key: "score", sortable: true },
         { key: "epsilon", sortable: true },
@@ -191,7 +196,7 @@ export default {
       settings: null,
       taxonomies: {},
       fieldsSettings: [
-        { key: "taxonomy", sortable: true, thClass: 'text-left', tdClass: 'text-left' },
+        { key: "taxonomy", label:"Category", sortable: true, thClass: 'text-left', tdClass: 'text-left' },
         { key: "include", label: "Name", sortable: false, thClass: 'text-left', tdClass: 'text-left' },
         // { key: "name", sortable: true },
         { key: "description", sortable: false, thClass: 'text-left', tdClass: 'text-left' }
@@ -228,6 +233,40 @@ export default {
 
       // Get the bounds of the current grid and zoom appropiately
       this.map.fitBounds(this.geojson.getBounds());
+
+      // Add legend
+      this.addLegend()
+      this.legend.update(this.gradient)
+    },
+    addLegend() {
+      this.legend = L.control({position: 'bottomright'})
+
+      this.legend.onAdd = function (map) {
+        this._div = L.DomUtil.create('div', 'info legend')
+        this.update()
+        return this._div;
+      }
+
+      this.legend.truncate = this.truncate
+      this.legend.getGradientColor = this.getGradientColor
+
+      this.legend.update = function (gradient=[]) {
+        // var grades = [0, 10, 20, 50, 100, 200, 500, 1000]
+        var grades = gradient
+
+        // Reset div
+        // this._div.innerHTML = `${selectedProperty} <br>`
+        this._div.innerHTML = ''
+
+        // loop through our density intervals and generate a label with a colored square for each interval
+        for (var i = 0; i < grades.length; i++) {
+          this._div.innerHTML +=
+              '<i style="background:' + this.getGradientColor(grades[i].val) + '"></i> ' +
+              this.truncate(grades[i].val) + (grades[i + 1] ? ' &ndash; ' + this.truncate(grades[i + 1].val) + '<br>' : '+');
+        }
+      }
+
+      this.legend.addTo(this.map);
     },
     getScoreGradient(features) {
       // Initialize the min and max scores in this collection
@@ -265,6 +304,20 @@ export default {
       }
 
       return intervals;
+    },
+    getGradientColor(value) {
+      // Edge cases
+      if (value < this.gradient[0].val) {
+        return this.gradient[0].color;
+      } else if (value >= this.gradient[this.gradientSteps].val) {
+        return this.gradient[this.gradientSteps].color;
+      }
+
+      for (var i = 0; i < this.gradientSteps; i++) {
+        if (value >= this.gradient[i].val && value < this.gradient[i + 1].val) {
+          return this.gradient[i].color;
+        }
+      }
     },
     scoreFeature(feature) {
       // Initialize the total score of this feature
@@ -315,19 +368,7 @@ export default {
     },
     getColor(feature) {
       var score = this.scoreFeature(feature);
-
-      // Edge cases
-      if (score < this.gradient[0].val) {
-        return this.gradient[0].color;
-      } else if (score >= this.gradient[this.gradientSteps].val) {
-        return this.gradient[this.gradientSteps].color;
-      }
-
-      for (var i = 0; i < this.gradientSteps; i++) {
-        if (score >= this.gradient[i].val && score < this.gradient[i + 1].val) {
-          return this.gradient[i].color;
-        }
-      }
+      return this.getGradientColor(score)
     },
     onEachFeature(feature, layer) {
       layer.on({
@@ -390,9 +431,10 @@ export default {
             }
           }
 
-
           items.push({
             driver: property,
+            taxonomy: dd[property]["taxonomy"],
+            description: dd[property]["description"],
             value: value,
             score: value ? this.truncate(dd[property]["values"][value]["score"]) : 0,
           });
@@ -404,7 +446,7 @@ export default {
       items.forEach(element => { this.cellScore += element.score })
       this.cellScore = this.truncate(this.cellScore);
       // this.cellTitle = props.Field + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " MTH" + "]";
-      this.cellTitle = props.id + " [Score: " + this.cellScore + "]";
+      this.cellTitle = "GEOID: " + props.GEOID10 + " [Score: " + this.cellScore + "]";
 
       return items;
     },
@@ -459,7 +501,7 @@ export default {
         }
         taxonomies[taxonomy]["drivers"].push(driver)
       }
-      console.log(taxonomies)
+      // console.log(taxonomies)
       return taxonomies
     },
     initializeSelectedDrivers(list) {
@@ -482,6 +524,7 @@ export default {
     restyleMap() {
       // Update gradient
       this.gradient = this.getScoreGradient(grid.features)
+      this.legend.update(this.gradient)
 
       // Update features
       this.geojson.eachLayer((featureInstanceLayer) => {
@@ -506,5 +549,43 @@ export default {
   height: 700px;
   overflow-y: scroll;
   font-size: 12px;
+}
+
+.info {
+    padding: 6px 8px;
+    font: 14px/16px Arial, Helvetica, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.8);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 5px;
+}
+
+.info h4 {
+    margin: 0 0 5px;
+    color: #777;
+}
+
+.legend {
+    text-align: left;
+    line-height: 18px;
+    color: #555;
+}
+
+.legend i {
+    width: 18px;
+    height: 18px;
+    float: left;
+    margin-right: 8px;
+    opacity: 0.7;
+}
+
+.placeholder {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: 0.5;
+  background: #F8F8F8;
+  border-radius: 10px;
 }
 </style>
