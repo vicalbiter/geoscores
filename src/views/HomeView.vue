@@ -65,7 +65,10 @@
                   <template #header>
                     <b-row align-v="center" align-h="between">
                       <b-col cols="6"><b-card-text><strong>Available Niche Variables</strong> for {{ classOfInterest }}</b-card-text></b-col>
-                      <b-col cols="2"><b-button variant="info" size="sm" @click="restyleMap"> Update Map</b-button></b-col>
+                      <b-col cols="4">
+                        <b-button size="sm" @click="restyleMap" class="mr-2">Show Filters</b-button>
+                        <b-button variant="info" size="sm" @click="restyleMap">Update Map</b-button>
+                      </b-col>
                     </b-row>
                   </template>
 
@@ -98,63 +101,19 @@
 // @ is an alias to /src
 import "leaflet/dist/leaflet.css";
 
-// 15 Minute City
-// import grid from "@/data/grid_ny15m.json";
-// import dd from "@/data/dd_ny15m.json";
-// import niche from "@/data/niche_ny15m.json";
-// var modelClass = "Class - Delta Population-10"
-
-// Fair Housing
-// import grid from "@/data/affh_lac/demo_affh_tracts.json";
-// import dd from "@/data/affh_lac/demo_affh_output_dict_CG_dist_ideal_10.json";
-// import dd_display from "@/data/affh_lac/demo_affh_output_table_display_CG_dist_ideal_10.json"
-// import niche from "@/data/affh_lac/demo_affh_output_table_CG_dist_ideal_10.json"; 
-// var modelClass = "Race Composition";
-// var modelTitle = "Class: " + modelClass + " - 10";
-
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
-import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
+import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_5.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_5.json"
+import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_5.json"; 
 var modelClass = "Rent >30% of renter's income";
-var modelTitle = "Class: " + modelClass + " - 10";
+var modelTitle = "Class: " + modelClass + " - 5";
 
-// Bikeways
-// import grid from "@/data/demo_increments_4326.json";
-// import dd from "@/data/demo_output_dict.json";
-// import dd_display from "@/data/demo_output_table_display.json"
-// import niche from "@/data/demo_output_table.json"; 
-// var modelClass = "Yield";
-// var modelTitle = "Class: " + modelClass + " - 10";
-
-// Bikeways
-// import grid from "@/data/grid_labike.json";
-// import dd from "@/data/dd_labike.json";
-// import niche from "@/data/niche_labike.json"; 
-// var modelClass = "Delta Bike Accidents";
-// var modelTitle = "Class: " + modelClass + " - 10";
-
-
-/* INSURANCE DEMOS */
-
-// import grid from "@/data/grid_lainf.json";
-// import dd from "@/data/dd_lainf_vb.json";
-// import niche from "@/data/niche_lainf_vb.json"; 
-// var modelClass = "Vehicle/Bike Accidents";
-// var modelTitle = "Class: " + modelClass + " - 10";
-
-// import grid from "@/data/grid_lainf.json";
-// import dd from "@/data/dd_lainf_vp.json";
-// import niche from "@/data/niche_lainf_vp.json"; 
-// var modelClass = "Vehicle/Pedestrian Accidents";
-// var modelTitle = "Class: " + modelClass + " - 10";
-
-// import grid from "@/data/grid_lainf.json";
-// import dd from "@/data/output_for_map.json";
-// import niche from "@/data/output_for_table.json"; 
-// var modelClass = "Vehicle/Vehicle Accidents";
-// var modelTitle = "Class: " + modelClass + " - 10";
+// import dd from "@/data/demo_affh_output_dict_CG_totPeople_5.json";
+// import dd_display from "@/data/demo_affh_output_table_display_CG_totPeople_5.json"
+// import niche from "@/data/demo_affh_output_table_CG_totPeople_5.json"; 
+// var modelClass = "Homelessness";
+// var modelTitle = "Class: " + modelClass + " - 5";
 
 import L, { geoJson } from "leaflet";
 const Gradient = require("javascript-color-gradient");
@@ -321,6 +280,7 @@ export default {
     },
     scoreFeature(feature) {
       // Initialize the total score of this feature
+      // console.log(feature)
       var total_score = 0;
 
       // Get the total score of this feature
@@ -547,7 +507,7 @@ export default {
 
 .control-pane {
   height: 700px;
-  overflow-y: scroll;
+  overflow-y: auto;
   font-size: 12px;
 }
 
@@ -588,4 +548,5 @@ export default {
   background: #F8F8F8;
   border-radius: 10px;
 }
+
 </style>

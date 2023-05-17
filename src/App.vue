@@ -4,7 +4,7 @@
       <div class="nav-container">
 
         <b-navbar-brand>
-          <h4><img src="./assets/lupa.png" class="d-inline-block align-top logo" alt=""> Smart <strong>Housing</strong></h4>
+          <h4><img src="./assets/lupa.png" class="d-inline-block align-top logo" alt=""> Smart <strong>City</strong> Planning</h4>
           <!-- <b-icon icon="building"></b-icon>  -->
         </b-navbar-brand>
         
