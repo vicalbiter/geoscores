@@ -23,7 +23,18 @@
             <b-dropdown-item href="#">Profile</b-dropdown-item>
             <b-dropdown-item href="#">Sign Out</b-dropdown-item>
           </b-nav-item-dropdown>
+
+          <!-- Settings -->
+          <b-nav-item>
+            <b-icon icon="gear" v-b-modal.settings-modal></b-icon>
+          </b-nav-item>
         </b-navbar-nav>
+
+        <b-modal id="settings-modal" title="Settings">
+          <b-form-checkbox v-model="isChecked" @change="toggleClassTracts">
+            Show Class Tracts
+          </b-form-checkbox>
+        </b-modal>
 
       </div>
     </b-navbar>
@@ -38,6 +49,25 @@
     </div>
   </div>
 </template>
+
+<script>
+import settings from '@/store/settings'
+
+export default {
+  data() {
+    return {
+      isChecked: false,
+      showClassTracts: settings.state.showClassTracts
+    }
+  },
+  methods: {
+    toggleClassTracts() {
+      settings.setClassTracts(this.isChecked)
+    }
+  }
+}
+
+</script>
 
 <style lang="scss">
 @import "../custom.scss";

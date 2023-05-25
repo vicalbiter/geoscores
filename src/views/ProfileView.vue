@@ -41,11 +41,13 @@ import "leaflet/dist/leaflet.css";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_pct_poverty_10.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_pct_poverty_10.json"
-import niche from "@/data/demo_affh_output_table_CG_pct_poverty_10.json"; 
-var modelClass = "Race Composition";
-var modelTitle = "Class: " + modelClass + " - 1";
+import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
+import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
+var selectedClass = "CG_pct_hhrent_30p"
+var selectedValue = 10
+var modelClassDesc = "Rent >30% of renter's income";
+var modelTitle = "Class: " + modelClassDesc + " - 10";
 
 import L, { geoJson } from "leaflet";
 const Gradient = require("javascript-color-gradient");

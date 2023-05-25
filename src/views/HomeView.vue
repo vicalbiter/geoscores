@@ -103,11 +103,13 @@ import "leaflet/dist/leaflet.css";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
-import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_5.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_5.json"
-import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_5.json"; 
-var modelClass = "Rent >30% of renter's income";
-var modelTitle = "Class: " + modelClass + " - 5";
+import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
+import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
+import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
+var selectedClass = "CG_pct_hhrent_30p"
+var selectedValue = 10
+var modelClassDesc = "Rent >30% of renter's income";
+var modelTitle = "Class: " + modelClassDesc + " - 10";
 
 // import dd from "@/data/demo_affh_output_dict_CG_totPeople_5.json";
 // import dd_display from "@/data/demo_affh_output_table_display_CG_totPeople_5.json"
@@ -116,6 +118,8 @@ var modelTitle = "Class: " + modelClass + " - 5";
 // var modelTitle = "Class: " + modelClass + " - 5";
 
 import L, { geoJson } from "leaflet";
+import settings from "@/store/settings";
+
 const Gradient = require("javascript-color-gradient");
 
 export default {
@@ -123,7 +127,10 @@ export default {
   components: {},
   data() {
     return {
+      selectedClass: selectedClass,
+      selectedValue: selectedValue,
       classOfInterest: modelTitle,
+      showClassTract: settings.state.showClassTracts,
       map: null,
       geojson: null,
       gradient: null,
@@ -319,9 +326,9 @@ export default {
     style(feature) {
       return {
         fillColor: this.getColor(feature),
-        weight: 1,
+        weight: this.getWeight(feature),
         opacity: 1,
-        color: 'white',
+        color: this.getBorder(feature),
         dashArray: "1",
         fillOpacity: 0.8,
       };
@@ -329,6 +336,14 @@ export default {
     getColor(feature) {
       var score = this.scoreFeature(feature);
       return this.getGradientColor(score)
+    },
+    getBorder(feature) {
+      if (this.showClassTract.status && feature.properties[selectedClass] == selectedValue) { return 'yellow' }
+      else { return 'white' }
+    },
+    getWeight(feature) {
+      if (this.showClassTract.status && feature.properties[selectedClass] == selectedValue) { return 7 }
+      else { return 1 }
     },
     onEachFeature(feature, layer) {
       layer.on({
