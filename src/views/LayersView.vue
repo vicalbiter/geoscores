@@ -65,13 +65,18 @@ import settings from "@/store/settings";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
+
 import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
-import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
-import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
 var selectedClass = "CG_pct_hhrent_30p"
 var selectedValue = 10
 var modelClassDesc = "Rent >30% of renter's income";
 var modelTitle = "Class: " + modelClassDesc + " - 10";
+
+// import dd from "@/data/demo_affh_output_dict_CG_evictions_1.json";
+// var selectedClass = "CG_evictions"
+// var selectedValue = 1
+// var modelClassDesc = "Evictions";
+// var modelTitle = "Class: " + modelClassDesc + " - True";
 
 import L, { geoJson } from "leaflet";
 const Gradient = require("javascript-color-gradient");
@@ -118,7 +123,7 @@ export default {
       // const grid = await fetch("something...");
       this.settings = this.intializeDriverSettings(dd);
       this.selectedDrivers = this.initializeSelectedDrivers(this.settings)
-      this.selectedProperty = 'pct_overcr'
+      this.selectedProperty = selectedClass
       this.gradient = this.getGradient(grid.features, this.selectedProperty);
     },
     initializeMap() {
@@ -144,7 +149,7 @@ export default {
 
       // Add info
       this.addInfo()
-      this.info.update(this.selectedProperty)
+      this.info.update(modelClassDesc)
 
       // Add legend
       this.addLegend()
@@ -181,7 +186,6 @@ export default {
       this.legend.getGradientColor = this.getGradientColor
 
       this.legend.update = function (selectedProperty, gradient=[]) {
-        // var grades = [0, 10, 20, 50, 100, 200, 500, 1000]
         var grades = gradient
 
         // Reset div
@@ -192,7 +196,7 @@ export default {
         for (var i = 0; i < grades.length; i++) {
           this._div.innerHTML +=
               '<i style="background:' + this.getGradientColor(grades[i].val) + '"></i> ' +
-              this.truncate(grades[i].val) + (grades[i + 1] ? ' &ndash; ' + this.truncate(grades[i + 1].val) + '<br>' : '+');
+              this.truncate(grades[i].val) + '<br>';
         }
       }
 
@@ -209,43 +213,54 @@ export default {
         var feature = features[index];
 
         // Get the value of this feature based on the queried property
-        var total_score = this.getFeatureValue(feature, propertyName);
+        var property_value = this.getFeatureValue(feature, propertyName);
 
         // Update the min and max values
-        min_value = total_score < min_value ? total_score : min_value;
-        max_value = total_score > max_value ? total_score : max_value;
+        if (property_value != null) {
+          min_value = property_value < min_value ? property_value : min_value;
+          max_value = property_value > max_value ? property_value : max_value;
+        }
       }
 
       // Get the gradient based on these min and max scores
-      var steps = this.gradientSteps;
-      var interval = (max_value - min_value) / steps;
+      var steps = max_value - min_value + 1;
+      console.log(max_value)
+      var interval = 1;
       var intervals = [];
 
       var gradientArray = new Gradient()
         // .setColorGradient("#0000FF", "FFFFFF", "#FF0000")
-        .setColorGradient("#0000FF", "FF0000")
+        // .setColorGradient("#e0f3db", "#a8ddb5", "#43a2ca")
+        .setColorGradient("#fee8c8", "#fdbb84", "#e34a33")
+        // .setColorGradient("#fc8d59", "#ffffbf", "#99d594")
         .setMidpoint(steps + 1)
         .getColors();
 
-      for (var i = 0; i <= steps; i++) {
+      for (var i = 0; i < steps; i++) {
         intervals.push({
           val: min_value + i * interval,
           color: gradientArray[i],
         });
       }
 
+      // console.log({"max": max_value, "min": min_value})
+      // console.log(intervals)
+
       return intervals;
     },
     getGradientColor(value) {
       // Edge cases
       if (value < this.gradient[0].val) {
+        // console.log(`[LOWER EXTREME] value was ${value}, assigned gradient is ${this.gradient[0].val}`)
         return this.gradient[0].color;
-      } else if (value >= this.gradient[this.gradientSteps].val) {
-        return this.gradient[this.gradientSteps].color;
+      } else if (value >= this.gradient[this.gradient.length - 1].val) {
+        // console.log(`[UPPER EXTREME] value was ${value}, assigned gradient is ${this.gradient[this.gradient.length - 1].val}`)
+        return this.gradient[this.gradient.length - 1].color;
       }
 
-      for (var i = 0; i < this.gradientSteps; i++) {
+      for (var i = 0; i < this.gradient.length - 1; i++) {
         if (value >= this.gradient[i].val && value < this.gradient[i + 1].val) {
+          // console.log(`[INTERMEDIATE] value was ${value}, assigned gradient is ${this.gradient[i].val}`)
           return this.gradient[i].color;
         }
       }
@@ -260,7 +275,7 @@ export default {
         opacity: 1,
         color: this.getBorder(feature),
         dashArray: "1",
-        fillOpacity: 0.8,
+        fillOpacity: 0.9,
       };
     },
     getColor(feature) {
@@ -392,8 +407,9 @@ export default {
     },
     restyleMap(item, e) {
       // Update gradient
-      this.selectedProperty = item["label"]
-      this.info.update(this.selectedProperty)
+      // this.selectedProperty = item["label"]
+      this.selectedProperty = item["name"]
+      this.info.update(item["description"])
       this.gradient = this.getGradient(grid.features, this.selectedProperty)
       this.legend.update(this.selectedProperty, this.gradient)
 
@@ -428,7 +444,7 @@ export default {
     font: 14px/16px Arial, Helvetica, sans-serif;
     background: white;
     background: rgba(255,255,255,0.8);
-    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    box-shadow: 0 0 15px rgba(0,0,0,0.5);
     border-radius: 5px;
 }
 
@@ -448,7 +464,7 @@ export default {
     height: 18px;
     float: left;
     margin-right: 8px;
-    opacity: 0.7;
+    opacity: 1;
 }
 
 .placeholder {

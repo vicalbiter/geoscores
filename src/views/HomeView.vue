@@ -103,6 +103,7 @@ import "leaflet/dist/leaflet.css";
 
 // Fair Housing
 import grid from "@/data/demo_affh_cog_tracts.json";
+
 import dd from "@/data/demo_affh_output_dict_CG_pct_hhrent_30p_10.json";
 import dd_display from "@/data/demo_affh_output_table_display_CG_pct_hhrent_30p_10.json"
 import niche from "@/data/demo_affh_output_table_CG_pct_hhrent_30p_10.json"; 
@@ -110,6 +111,22 @@ var selectedClass = "CG_pct_hhrent_30p"
 var selectedValue = 10
 var modelClassDesc = "Rent >30% of renter's income";
 var modelTitle = "Class: " + modelClassDesc + " - 10";
+
+// import dd from "@/data/demo_affh_output_dict_CG_evictions_1.json";
+// import dd_display from "@/data/demo_affh_output_table_display_CG_evictions_1.json"
+// import niche from "@/data/demo_affh_output_table_CG_evictions_1.json"; 
+// var selectedClass = "CG_evictions"
+// var selectedValue = 1
+// var modelClassDesc = "Evictions";
+// var modelTitle = "Class: " + modelClassDesc + " - True";
+
+// import dd from "@/data/demo_affh_output_dict_CG_totUnsheltPeople.json";
+// import dd_display from "@/data/demo_affh_output_table_display_CG_totUnsheltPeople.json"
+// import niche from "@/data/demo_affh_output_table_CG_totUnsheltPeople.json"; 
+// var selectedClass = "CG_totUnsheltPeople"
+// var selectedValue = 9
+// var modelClassDesc = "Total Unsheltered People";
+// var modelTitle = "Class: " + modelClassDesc + " - 10";
 
 // import dd from "@/data/demo_affh_output_dict_CG_totPeople_5.json";
 // import dd_display from "@/data/demo_affh_output_table_display_CG_totPeople_5.json"
@@ -421,7 +438,7 @@ export default {
       items.forEach(element => { this.cellScore += element.score })
       this.cellScore = this.truncate(this.cellScore);
       // this.cellTitle = props.Field + " [Score: " + this.cellScore + " => " + this.transform(this.cellScore) + " MTH" + "]";
-      this.cellTitle = "GEOID: " + props.GEOID10 + " [Score: " + this.cellScore + "]";
+      this.cellTitle = "GEOID: " + props.CT10 + " [Score: " + this.cellScore + "]";
 
       return items;
     },
